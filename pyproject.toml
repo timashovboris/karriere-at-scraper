@@ -1,0 +1,20 @@
+[project]
+name = "karriere-at-parser"
+version = "0.0.1"
+description = "A scraper for job listings from karriere.at"
+authors = [
+    {name = "Boris Timashov",email = "boristimashov21@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "free-proxy @ git+https://github.com/jundymek/free-proxy",
+    "selenium (>=4.30.0,<5.0.0)",
+    "pandas (>=2.2.3,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
