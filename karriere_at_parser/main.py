@@ -9,90 +9,86 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 
 class KarriereAtParser:
+    # Website base url
+    BASE_URL = "https://www.karriere.at/jobs"
+
+    # Columns for dataframe
+    DF_COLUMNS = ["Name", "ID", "URL", "Company", "Location", "Employment type", "Salary", "Experience"]
+
     def __init__(self, geckodriver_dir):
-
         self.geckodriver_dir = geckodriver_dir
-
         self.driver = None
-
-        df_columns = ["Name", "ID", "URL", "Company", "Location", "Employment type", "Salary", "Experience"]
-        self.current_df = pd.DataFrame([], columns=df_columns)
+        self.current_df = pd.DataFrame([], columns=self.DF_COLUMNS)
 
     def create_driver(self, use_proxy=True):
-        if isinstance(self.driver, WebDriver):
+        # Check if driver already exists
+        if self.driver:
             self.driver.quit()
 
-        # region driver setup
+        # region Driver setup
         gecko_options = Options()
         gecko_options.add_argument("--headless")  # Run in headless mode
         gecko_options.add_argument("--width=1920")
         gecko_options.add_argument("--height=1080")
+        # Add proxy when required
         if use_proxy:
             use_proxy = FreeProxy().get()
             gecko_options.add_argument(f"--proxy-server={use_proxy}")
             print(f"=== Driver created under the proxy {use_proxy} ===")
         else:
             print(f"=== Driver created ===")
-        service = Service(self.geckodriver_dir)  # Update with the path to your WebDriver
+        # Updated with the path to WebDriver
+        service = Service(self.geckodriver_dir)
+        # endregion
+
         self.driver = webdriver.Firefox(service=service, options=gecko_options)
 
     def get_df(self):
         return self.current_df
 
     def build_links(self, jobs, location):
-        base_url = "https://www.karriere.at/jobs"
-
-        # Ensure jobs is a list for uniform processing
+        # If a single string is given
         if isinstance(jobs, str):
             jobs = [jobs]
-
-        # Process each job to build the URL
-        job_links = []
-        for job in jobs:
-            job_formatted = job.lower().replace(" ", "-")
-            location_formatted = location.lower().replace(" ", "-")
-            job_links.append(f"{base_url}/{job_formatted}/{location_formatted}")
-
-        # Return a single URL if only one job was provided, otherwise return the list
+        # Create urls
+        job_links = [
+            f"{self.BASE_URL}/{job.lower().replace(' ', '-')}/{location.lower().replace(' ', '-')}"
+            for job in jobs
+        ]
         return job_links
 
+    # Get the text of an element
     def get_element_text(self, how, name, default_value="N/A", driver=None):
         if driver is None:
             driver = self.driver
-
         try:
             element = driver.find_element(how, name)
             return element.text.strip()
         except NoSuchElementException:
             return default_value
-        except Exception:
-            print(f"! Exception encountered while getting text of {name}")
+        except Exception as e:
+            print(f"! Exception encountered while getting text of {name}: {e}")
             return "EXCEPTION"
 
-    def remove_element(self, how, name, driver=None):
-        if driver is None:
-            driver = self.driver
-
+    # Remove an element
+    def remove_element(self, how, name):
         try:
-            to_remove = WebDriverWait(driver, 10).until(
+            to_remove = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((how, name))
             )
-            driver.execute_script("arguments[0].remove();", to_remove)
-        except Exception:
-            print(f"! Failed to remove element of {name};")
+            self.driver.execute_script("arguments[0].remove();", to_remove)
+        except Exception as e:
+            print(f"! Failed to remove element of {name}: {e}")
 
-    def fetch_jobs_data(self, urls, limit=9999, use_proxy = True):
-        base_url = "https://www.karriere.at/jobs"
+    def fetch_jobs_data(self, urls, limit=9999, use_proxy=True):
+        self.create_driver(use_proxy=use_proxy)
 
-        self.create_driver()
-
-        self.driver.get(base_url)
+        self.driver.get(self.BASE_URL)
 
         # Wait until the searchbar is loaded and click on empty space to activate the page
         searchbar_element = WebDriverWait(self.driver, 10).until(
@@ -109,7 +105,7 @@ class KarriereAtParser:
             element.click()
             time.sleep(2)
             print("+ Cookies successfully denied")
-        except:
+        except Exception:
             print("- Cookies are not required this time")
 
         df_len_modifier = 0
@@ -163,7 +159,7 @@ class KarriereAtParser:
                         id_pattern = r'[^#]+$'
                         job_id = re.search(id_pattern, job_url).group(0)
 
-                        job_url = f"{base_url}/{job_id}"
+                        job_url = f"{self.BASE_URL}/{job_id}"
 
                         job_company = self.get_element_text(By.CLASS_NAME, 'm-jobsListItem__company', driver=job)
                         job_location = self.get_element_text(By.CSS_SELECTOR, '.m-keyfactBox__jobLocations')
