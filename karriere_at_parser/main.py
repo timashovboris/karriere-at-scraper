@@ -20,12 +20,30 @@ class KarriereAtParser:
     # Columns for dataframe
     DF_COLUMNS = ["Name", "ID", "URL", "Company", "Location", "Employment type", "Salary", "Experience"]
 
+    # IDs and classes of utility elements
+    SEARCHBAR_ID = 'keywords'
+    COOKIE_DENY_ID = 'onetrust-reject-all-handler'
+    JOB_LIST_HEADER_CLASS = 'm-jobsListHeader__title'
+    JOB_LIST_CLASS = 'm-jobsSearchList__activeJobs'
+    DISRUPTOR_CLASS = 'm-alarmDisruptorPill__pill'
+    JOB_TITLE_CLASS = 'm-jobsListItem__title'
+    ACTIVE_JOBS_CLASS = 'm-jobsListItem--active'
+    JOB_IFRAME_SELECTOR = '.m-jobContent__iFrame'
+    LOAD_MORE_BTN_CLASS = 'm-loadMoreJobsButton__button'
+
+    # IDs and Classes of fields
+
+    WAIT_TIMER = 5
+
     def __init__(self, geckodriver_dir):
         self.geckodriver_dir = geckodriver_dir
         self.driver = None
         self.current_df = pd.DataFrame([], columns=self.DF_COLUMNS)
 
-    def create_driver(self, use_proxy=True):
+    def get_df(self):
+        return self.current_df
+
+    def __create_driver(self, use_proxy=True):
         # Check if driver already exists
         if self.driver:
             self.driver.quit()
@@ -48,10 +66,7 @@ class KarriereAtParser:
 
         self.driver = webdriver.Firefox(service=service, options=gecko_options)
 
-    def get_df(self):
-        return self.current_df
-
-    def build_links(self, jobs, location):
+    def __build_links(self, jobs, location):
         # If a single string is given
         if isinstance(jobs, str):
             jobs = [jobs]
@@ -62,96 +77,127 @@ class KarriereAtParser:
         ]
         return job_links
 
-    # Get the text of an element
-    def get_element_text(self, how, name, default_value="N/A", driver=None):
+    def __get_element(self, how, name, driver=None, hard=False):
+        # If no custom driver provided
+        if driver is None:
+            driver = self.driver
+        if not hard:
+            try:
+                return WebDriverWait(driver, self.WAIT_TIMER).until(
+                    EC.presence_of_element_located((how, name))
+                )
+            except NoSuchElementException:
+                return None
+            except TimeoutException:
+                return None
+            except Exception as e:
+                print(f"! Failed to get element of {name}: {e}")
+                return None
+        else:
+            try:
+                return driver.find_element(how, name)
+            except NoSuchElementException:
+                return None
+            except Exception as e:
+                print(f"! Failed to get element of {name}: {e}")
+                return None
+
+    def __get_elements(self, how, name, driver=None):
+        # If no custom driver provided
         if driver is None:
             driver = self.driver
         try:
-            element = driver.find_element(how, name)
-            return element.text.strip()
+            return WebDriverWait(driver, self.WAIT_TIMER).until(
+                EC.presence_of_all_elements_located((how, name))
+            )
         except NoSuchElementException:
-            return default_value
+            return []
+        except Exception as e:
+            print(f"! Failed to get elements of {name}: {e}")
+            return []
+
+    # Get the text of an element
+    def __get_element_text(self, how, name, default_value="N/A", driver=None, hard=False):
+        try:
+            # If no custom driver provided
+            if driver is None:
+                driver = self.driver
+
+            elem = self.__get_element(how, name, driver, hard)
+
+            if elem is None:
+                return default_value
+            else:
+                return elem.text.strip()
+
         except Exception as e:
             print(f"! Exception encountered while getting text of {name}: {e}")
             return "EXCEPTION"
 
     # Remove an element
-    def remove_element(self, how, name):
+    def __remove_element(self, how, name):
         try:
-            to_remove = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((how, name))
-            )
+            to_remove = self.__get_element(how, name)
             self.driver.execute_script("arguments[0].remove();", to_remove)
         except Exception as e:
             print(f"! Failed to remove element of {name}: {e}")
 
-    def fetch_jobs_data(self, urls, limit=9999, use_proxy=True):
-        self.create_driver(use_proxy=use_proxy)
-
-        self.driver.get(self.BASE_URL)
-
-        # Wait until the searchbar is loaded and click on empty space to activate the page
-        searchbar_element = WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'keywords'))
-        )
-
-        searchbar_element.click()
-
-        # Deny the cookies
+    def __deny_cookies(self):
         try:
-            element = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.ID, 'onetrust-reject-all-handler'))
-            )
+            element = self.__get_element(By.ID, self.COOKIE_DENY_ID)
             element.click()
             time.sleep(2)
             print("+ Cookies successfully denied")
         except Exception:
             print("- Cookies are not required this time")
 
-        df_len_modifier = 0
+    def fetch_jobs_data(self, urls, limit=9999, use_proxy=True):
+        self.__create_driver(use_proxy=use_proxy)
 
-        start_time = time.time()
-        full_exec_time = 0
+        self.driver.get(self.BASE_URL)
+
+        # region Wait until the searchbar is loaded and click on empty space to activate the page
+        searchbar_element = self.__get_element(By.ID, self.SEARCHBAR_ID)
+        searchbar_element.click()
+        # endregion
+
+        # Deny the cookies
+        self.__deny_cookies()
+
+        df_len_modifier = 0  # It stores how many items are already stored in self.df
+        start_time = time.time()  # The time when parsing started after creating self.driver
+        full_exec_time = 0  # Time of processing all urls
 
         for url in urls:
             print(f"== Start scraping through {url} ==")
             self.driver.get(url)
 
-            # Wait until the list is loaded and click to activate the page
-            job_listing_container = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, 'm-jobsSearchList__activeJobs'))
-            )
-
-            # Remove the disruptor pill
-            self.remove_element(By.CLASS_NAME, 'm-alarmDisruptorPill__pill')
+            # Wait until the list is loaded and get the number of available jobs
+            job_listing_amount = self.__get_element_text(By.CLASS_NAME, self.JOB_LIST_HEADER_CLASS).split()[0]
 
             # Check how many jobs to expect
-            total_jobs_expected = self.get_element_text(By.CLASS_NAME, "m-jobsListHeader__title").split()[0]
-            total_jobs_expected = int(total_jobs_expected) if total_jobs_expected.isdigit() else 0
+            total_jobs_expected = int(job_listing_amount) if job_listing_amount.isdigit() else 0
             print(f"For this search a total of {total_jobs_expected} jobs is expected to be parsed")
 
-            more_available = True
-            item_counter = 0
+            # Remove the disruptor pill
+            self.__remove_element(By.CLASS_NAME, 'm-alarmDisruptorPill__pill')
+
+            more_available = True  # If it's possible to "load more"
+            item_counter = 0  # How many items were on this page
             df_len_modifier += len(self.current_df)
 
             while more_available and len(self.current_df) < limit and item_counter < total_jobs_expected:
+                # Load all available jobs, as well as "load more" button and some footer info
+                job_items = self.__get_elements(By.CLASS_NAME, self.ACTIVE_JOBS_CLASS)
+
                 # Iterate through jobs
-                job_listing_container = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, "//*[@class='m-jobsSearchList__activeJobs']"))
-                )
-
-                job_items = job_listing_container.find_elements(By.CLASS_NAME,
-                                                                "m-jobsListItem--active")  # It will contain jobs, as well as "load more" button and some footer info
-
                 for job_ind in range(item_counter, len(job_items)):
                     try:
                         job = job_items[job_ind]
-                        job_name_element = job.find_element(By.CLASS_NAME, "m-jobsListItem__title")
+                        job_name_element = self.__get_element(By.CLASS_NAME, self.JOB_TITLE_CLASS, driver=job)
                         job_name_element.click()
 
-                        WebDriverWait(self.driver, 10).until(
-                            EC.presence_of_element_located((By.CSS_SELECTOR, '.m-jobContent__iFrame'))
-                        )
+                        self.__get_element(By.CSS_SELECTOR, self.JOB_IFRAME_SELECTOR)
 
                         job_name = job_name_element.text
                         job_url = self.driver.current_url
@@ -161,13 +207,15 @@ class KarriereAtParser:
 
                         job_url = f"{self.BASE_URL}/{job_id}"
 
-                        job_company = self.get_element_text(By.CLASS_NAME, 'm-jobsListItem__company', driver=job)
-                        job_location = self.get_element_text(By.CSS_SELECTOR, '.m-keyfactBox__jobLocations')
-                        job_employment_types = self.get_element_text(By.CSS_SELECTOR,
-                                                                     '.m-keyfactBox__jobEmploymentTypes')
-                        job_salary = self.get_element_text(By.CSS_SELECTOR,
-                                                           '.m-keyfactBox__jobSalaryRange')
-                        job_experience = self.get_element_text(By.CSS_SELECTOR, '.m-keyfactBox__jobLevel')
+                        job_company = self.__get_element_text(By.CLASS_NAME, 'm-jobsListItem__company', driver=job,
+                                                              hard=True)
+                        job_location = self.__get_element_text(By.CSS_SELECTOR, '.m-keyfactBox__jobLocations',
+                                                               hard=True)
+                        job_employment_types = self.__get_element_text(By.CSS_SELECTOR,
+                                                                       '.m-keyfactBox__jobEmploymentTypes', hard=True)
+                        job_salary = self.__get_element_text(By.CSS_SELECTOR, '.m-keyfactBox__jobSalaryRange',
+                                                             hard=True)
+                        job_experience = self.__get_element_text(By.CSS_SELECTOR, '.m-keyfactBox__jobLevel', hard=True)
 
                         data = [job_name, job_id, job_url, job_company, job_location, job_employment_types, job_salary,
                                 job_experience]
@@ -178,26 +226,9 @@ class KarriereAtParser:
                         self.driver.save_screenshot(f"crash_on_{item_counter}.png")
 
                     item_counter += 1
-
-                # Try to find "Load more" button, quit if none
-                try:
-                    load_more_btn = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, 'm-loadMoreJobsButton__button'))
-                    )
-                    load_more_btn.click()
-
-                    WebDriverWait(self.driver, 5).until(
-                        lambda d: len(job_listing_container.find_elements(By.XPATH,
-                                                                          "//*[@class='m-jobsList__item']")) > item_counter
-                    )
-                except TimeoutException:
-                    # This will catch the case where the element is not found within the timeout
-                    more_available = False
-                except NoSuchElementException:
-                    # This will catch the case where the element is not found after the wait
-                    more_available = False
-                except Exception as e:
-                    more_available = False
+                print(
+                    f"{item_counter} elements, {item_counter / total_jobs_expected:.2%} of {total_jobs_expected}, are parsed")
+                more_available = self.load_more_jobs(item_counter)
 
             cur_time = time.time()
             cur_exec_time = cur_time - (start_time + full_exec_time)
@@ -213,8 +244,25 @@ class KarriereAtParser:
 
         self.current_df = self.current_df.drop_duplicates(subset="ID", keep='last')
 
+    def load_more_jobs(self, item_counter):
+        try:
+            load_more_btn = self.__get_element(By.CLASS_NAME, self.LOAD_MORE_BTN_CLASS, hard=True)
+            if load_more_btn is not None:
+                load_more_btn.click()
+            else:
+                return False
+            WebDriverWait(self.driver, self.WAIT_TIMER).until(
+                lambda d: len(d.find_elements(By.XPATH, "//*[@class='m-jobsList__item']")) > item_counter
+            )
+            return True
+        except (TimeoutException, NoSuchElementException):
+            return False
+        except Exception as e:
+            print(f"Exception while loading more jobs: {e}")
+            return False
+
     def fetch_jobs(self, jobs_list, location, length_limit=9999, auto_export=True):
-        urls = self.build_links(jobs_list, location)
+        urls = self.__build_links(jobs_list, location)
         self.fetch_jobs_data(urls, length_limit)
         if len(self.current_df) == 0:
             print("! No jobs were found")
