@@ -5,11 +5,11 @@ from datetime import datetime
 import pandas as pd
 from fp.fp import FreeProxy
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
 
@@ -78,28 +78,27 @@ class KarriereAtParser:
         return job_links
 
     def __get_element(self, how, name, driver=None, hard=False):
-        # If no custom driver provided
-        if driver is None:
-            driver = self.driver
-        if not hard:
+        driver = driver or self.driver  # If no custom driver provided
+
+        for attempt in range(2):
             try:
-                return WebDriverWait(driver, self.WAIT_TIMER).until(
-                    EC.presence_of_element_located((how, name))
-                )
-            except NoSuchElementException:
-                return None
-            except TimeoutException:
+                if not hard:  # if wanted to wait before getting an element
+                    element = WebDriverWait(driver, self.WAIT_TIMER).until(
+                        ec.presence_of_element_located((how, name))
+                    )
+                else:  # if wanted to try to get an element straight ahead
+                    element = driver.find_element(how, name)
+                return element
+            except StaleElementReferenceException:
+                if attempt < 1:
+                    print(f"Element {name} disappeared from DOM. Retrying...")
+                else:
+                    print(f"Element {name} disappeared from DOM after retry.")
+                    return None
+            except (NoSuchElementException, TimeoutException):
                 return None
             except Exception as e:
-                print(f"! Failed to get element of {name}: {e}")
-                return None
-        else:
-            try:
-                return driver.find_element(how, name)
-            except NoSuchElementException:
-                return None
-            except Exception as e:
-                print(f"! Failed to get element of {name}: {e}")
+                print(f"Failed to get element of {name}: {e}")
                 return None
 
     def __get_elements(self, how, name, driver=None):
@@ -108,7 +107,7 @@ class KarriereAtParser:
             driver = self.driver
         try:
             return WebDriverWait(driver, self.WAIT_TIMER).until(
-                EC.presence_of_all_elements_located((how, name))
+                ec.presence_of_all_elements_located((how, name))
             )
         except NoSuchElementException:
             return []
@@ -118,21 +117,25 @@ class KarriereAtParser:
 
     # Get the text of an element
     def __get_element_text(self, how, name, default_value="N/A", driver=None, hard=False):
-        try:
-            # If no custom driver provided
-            if driver is None:
-                driver = self.driver
+        driver = driver or self.driver
 
-            elem = self.__get_element(how, name, driver, hard)
-
-            if elem is None:
-                return default_value
-            else:
-                return elem.text.strip()
-
-        except Exception as e:
-            print(f"! Exception encountered while getting text of {name}: {e}")
-            return "EXCEPTION"
+        for attempt in range(2):  # Retry once
+            try:
+                # Re-fetch the element right before getting its text
+                elem = self.__get_element(how, name, driver, hard)
+                if elem is None:
+                    return default_value
+                else:
+                    return elem.text.strip()
+            except StaleElementReferenceException:
+                if attempt < 1:
+                    print(f"Element {name} disappeared from DOM while getting text. Retrying...")
+                else:
+                    print(f"Element {name} disappeared from DOM after retry while getting text.")
+                    return "EXCEPTION"
+            except Exception as e:
+                print(f"Exception encountered while getting text of {name}: {e}")
+                return "EXCEPTION"
 
     # Remove an element
     def __remove_element(self, how, name):
@@ -151,7 +154,7 @@ class KarriereAtParser:
         except Exception:
             print("- Cookies are not required this time")
 
-    def fetch_jobs_data(self, urls, limit=9999, use_proxy=True):
+    def __fetch_jobs_data(self, urls, limit=9999, use_proxy=True):
         self.__create_driver(use_proxy=use_proxy)
 
         self.driver.get(self.BASE_URL)
@@ -178,6 +181,7 @@ class KarriereAtParser:
             # Check how many jobs to expect
             total_jobs_expected = int(job_listing_amount) if job_listing_amount.isdigit() else 0
             print(f"For this search a total of {total_jobs_expected} jobs is expected to be parsed")
+            print("=" * 12)
 
             # Remove the disruptor pill
             self.__remove_element(By.CLASS_NAME, 'm-alarmDisruptorPill__pill')
@@ -226,17 +230,20 @@ class KarriereAtParser:
                         self.driver.save_screenshot(f"crash_on_{item_counter}.png")
 
                     item_counter += 1
+
                 print(
-                    f"{item_counter} elements, {item_counter / total_jobs_expected:.2%} of {total_jobs_expected}, are parsed")
-                more_available = self.load_more_jobs(item_counter)
+                    f"{item_counter / total_jobs_expected:.2%} ({item_counter} / {total_jobs_expected} elements)")
+
+                more_available = self.__load_more_jobs(item_counter)
 
             cur_time = time.time()
             cur_exec_time = cur_time - (start_time + full_exec_time)
             full_exec_time = cur_time - start_time
 
-            print(f"Execution time: total {full_exec_time} sec, this url {cur_exec_time};")
+            print("=" * 12)
+            print(f"Execution time: total {full_exec_time:.2f} sec, this url {cur_exec_time:.2f}")
             print(
-                f"Speed: {full_exec_time / max(1, df_len_modifier + item_counter)} in total, {cur_exec_time / max(1, item_counter)} sec/elem in current url;")
+                f"Speed: {full_exec_time / max(1, df_len_modifier + item_counter):.2f} in total, {cur_exec_time / max(1, item_counter):.2f} sec/elem in current url;")
 
         self.driver.quit()
 
@@ -244,7 +251,7 @@ class KarriereAtParser:
 
         self.current_df = self.current_df.drop_duplicates(subset="ID", keep='last')
 
-    def load_more_jobs(self, item_counter):
+    def __load_more_jobs(self, item_counter):
         try:
             load_more_btn = self.__get_element(By.CLASS_NAME, self.LOAD_MORE_BTN_CLASS, hard=True)
             if load_more_btn is not None:
@@ -263,7 +270,7 @@ class KarriereAtParser:
 
     def fetch_jobs(self, jobs_list, location, length_limit=9999, auto_export=True):
         urls = self.__build_links(jobs_list, location)
-        self.fetch_jobs_data(urls, length_limit)
+        self.__fetch_jobs_data(urls, length_limit)
         if len(self.current_df) == 0:
             print("! No jobs were found")
         else:
