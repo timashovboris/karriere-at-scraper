@@ -26,27 +26,41 @@ class KarriereAtParser:
     JOB_LIST_HEADER_CLASS = 'm-jobsListHeader__title'
     JOB_LIST_CLASS = 'm-jobsSearchList__activeJobs'
     DISRUPTOR_CLASS = 'm-alarmDisruptorPill__pill'
-    JOB_TITLE_CLASS = 'm-jobsListItem__title'
     ACTIVE_JOBS_CLASS = 'm-jobsListItem--active'
     JOB_IFRAME_SELECTOR = '.m-jobContent__iFrame'
     LOAD_MORE_BTN_CLASS = 'm-loadMoreJobsButton__button'
 
-    # IDs and Classes of fields
+    # IDs and Classes of job fields
+    JOB_TITLE_CLASS = 'm-jobsListItem__title'
+    COMPANY = 'm-jobsListItem__company'
+    LOCATION = '.m-keyfactBox__jobLocations'
+    EMPLOYMENT_TYPE = '.m-keyfactBox__jobEmploymentTypes'
+    SALARY = '.m-keyfactBox__jobSalaryRange'
+    EXPERIENCE = '.m-keyfactBox__jobLevel'
 
+    # Utility values
     WAIT_TIMER = 5
+    DRIVER_RETRIES = 2
 
     def __init__(self, geckodriver_dir):
-        self.geckodriver_dir = geckodriver_dir
-        self.driver = None
-        self.current_df = pd.DataFrame([], columns=self.DF_COLUMNS)
+        self.__geckodriver_dir = geckodriver_dir
+        self.__driver = None
+        self.__current_df = pd.DataFrame([], columns=self.DF_COLUMNS)
 
     def get_df(self):
-        return self.current_df
+        """Returns current dataframe"""
+        return self.__current_df
 
     def __create_driver(self, use_proxy=True):
+        """
+        Creates selenium webdriver
+
+        :param use_proxy: True if you want to connect with a proxy
+        """
+
         # Check if driver already exists
-        if self.driver:
-            self.driver.quit()
+        if self.__driver:
+            self.__driver.quit()
 
         # region Driver setup
         gecko_options = Options()
@@ -61,12 +75,18 @@ class KarriereAtParser:
         else:
             print(f"=== Driver created ===")
         # Updated with the path to WebDriver
-        service = Service(self.geckodriver_dir)
+        service = Service(self.__geckodriver_dir)
         # endregion
 
-        self.driver = webdriver.Firefox(service=service, options=gecko_options)
+        self.__driver = webdriver.Firefox(service=service, options=gecko_options)
 
-    def __build_links(self, jobs, location):
+    def __build_links(self, jobs, locations):
+        """
+        Creates a list of URLs
+        :param jobs: a list of jobs
+        :param locations: a list of locations
+        :return: a list of URLs
+        """
         # If a single string is given
         if isinstance(jobs, str):
             jobs = [jobs]
@@ -74,13 +94,24 @@ class KarriereAtParser:
         job_links = [
             f"{self.BASE_URL}/{job.lower().replace(' ', '-')}/{location.lower().replace(' ', '-')}"
             for job in jobs
+            for location in locations
         ]
         return job_links
 
     def __get_element(self, how, name, driver=None, hard=False):
-        driver = driver or self.driver  # If no custom driver provided
+        """
+        Tries to get an element from a page, will retry if encounters a StaleElementReferenceException
 
-        for attempt in range(2):
+        :param how: how to get the element (selenium.webdriver.common.by.By). Example: By.ID
+        :param name: a value to be used with "how" - selector for a By.CSS_SELECTOR, id for By.ID, etc.
+        :param driver: a custom selenium webdriver (or element), self.driver by default
+        :param hard: False to wait before trying to get an element, True to do it straight ahead, False by default
+        :return: a WebElement or None
+        """
+
+        driver = driver or self.__driver  # If no custom driver provided
+
+        for attempt in range(self.DRIVER_RETRIES):
             try:
                 if not hard:  # if wanted to wait before getting an element
                     element = WebDriverWait(driver, self.WAIT_TIMER).until(
@@ -90,10 +121,11 @@ class KarriereAtParser:
                     element = driver.find_element(how, name)
                 return element
             except StaleElementReferenceException:
-                if attempt < 1:
-                    print(f"Element {name} disappeared from DOM. Retrying...")
+                if attempt < self.DRIVER_RETRIES:
+                    # Element disappeared from DOM, will retry
+                    pass
                 else:
-                    print(f"Element {name} disappeared from DOM after retry.")
+                    # Element disappeared from DOM after retrying
                     return None
             except (NoSuchElementException, TimeoutException):
                 return None
@@ -101,10 +133,21 @@ class KarriereAtParser:
                 print(f"Failed to get element of {name}: {e}")
                 return None
 
+        return None
+
     def __get_elements(self, how, name, driver=None):
+        """
+        Returns a list of WebElements, handles a NoSuchElementException, will wait before trying to get elements
+
+        :param how: how to get the element (selenium.webdriver.common.by.By). Example: By.ID
+        :param name: a value to be used with "how" - selector for a By.CSS_SELECTOR, id for By.ID, etc.
+        :param driver: a custom selenium webdriver (or element), self.driver by default
+        :return: a list of WebElements or an empty list
+        """
+
         # If no custom driver provided
         if driver is None:
-            driver = self.driver
+            driver = self.__driver
         try:
             return WebDriverWait(driver, self.WAIT_TIMER).until(
                 ec.presence_of_all_elements_located((how, name))
@@ -115,49 +158,83 @@ class KarriereAtParser:
             print(f"! Failed to get elements of {name}: {e}")
             return []
 
-    # Get the text of an element
     def __get_element_text(self, how, name, default_value="N/A", driver=None, hard=False):
-        driver = driver or self.driver
+        """
+        Gets a WebElement and returns its text
 
-        for attempt in range(2):  # Retry once
+        :param how: how to get the element (selenium.webdriver.common.by.By). Example: By.ID
+        :param name: a value to be used with "how" - selector for a By.CSS_SELECTOR, id for By.ID, etc.
+        :param default_value: default string value
+        :param driver: a custom selenium webdriver (or element), self.driver by default
+        :param hard: False to wait before trying to get an element, True to do it straight ahead, False by default
+        :return:
+        """
+
+        driver = driver or self.__driver
+
+        for attempt in range(self.DRIVER_RETRIES):  # Retry once
             try:
                 # Re-fetch the element right before getting its text
                 elem = self.__get_element(how, name, driver, hard)
                 if elem is None:
                     return default_value
                 else:
-                    return elem.text.strip()
+                    res = elem.text.strip()
+                    return res
             except StaleElementReferenceException:
                 if attempt < 1:
-                    print(f"Element {name} disappeared from DOM while getting text. Retrying...")
+                    pass
+                    # print(f"Element {name} disappeared from DOM while getting text. Retrying...")
                 else:
-                    print(f"Element {name} disappeared from DOM after retry while getting text.")
+                    # print(f"Element {name} disappeared from DOM after retry while getting text.")
                     return "EXCEPTION"
             except Exception as e:
                 print(f"Exception encountered while getting text of {name}: {e}")
                 return "EXCEPTION"
 
-    # Remove an element
+        return default_value
+
     def __remove_element(self, how, name):
+        """
+        Removes an element from the page
+
+        :param how: how to get the element (selenium.webdriver.common.by.By). Example: By.ID
+        :param name: a value to be used with "how" - selector for a By.CSS_SELECTOR, id for By.ID, etc.
+        :return: True if the element was removed, False otherwise
+        """
         try:
             to_remove = self.__get_element(how, name)
-            self.driver.execute_script("arguments[0].remove();", to_remove)
+            self.__driver.execute_script("arguments[0].remove();", to_remove)
+            return True
         except Exception as e:
             print(f"! Failed to remove element of {name}: {e}")
+            return False
 
     def __deny_cookies(self):
+        """
+        Waits for a cookies request and declines it
+        :return: True if cookies were declined, False otherwise
+        """
         try:
             element = self.__get_element(By.ID, self.COOKIE_DENY_ID)
             element.click()
             time.sleep(2)
             print("+ Cookies successfully denied")
+            return True
         except Exception:
             print("- Cookies are not required this time")
+            return False
 
     def __fetch_jobs_data(self, urls, limit=9999, use_proxy=True):
+        """
+        Fetches all the available jobs for all provided URLs, only unique entries are kept, data is stored in a current_df
+        :param urls: a list of URLs
+        :param limit: a hard limit on how many jobs to fetch
+        :param use_proxy: True if you want to connect with proxy
+        """
         self.__create_driver(use_proxy=use_proxy)
 
-        self.driver.get(self.BASE_URL)
+        self.__driver.get(self.BASE_URL)
 
         # region Wait until the searchbar is loaded and click on empty space to activate the page
         searchbar_element = self.__get_element(By.ID, self.SEARCHBAR_ID)
@@ -173,7 +250,7 @@ class KarriereAtParser:
 
         for url in urls:
             print(f"== Start scraping through {url} ==")
-            self.driver.get(url)
+            self.__driver.get(url)
 
             # Wait until the list is loaded and get the number of available jobs
             job_listing_amount = self.__get_element_text(By.CLASS_NAME, self.JOB_LIST_HEADER_CLASS).split()[0]
@@ -188,9 +265,9 @@ class KarriereAtParser:
 
             more_available = True  # If it's possible to "load more"
             item_counter = 0  # How many items were on this page
-            df_len_modifier += len(self.current_df)
+            df_len_modifier += len(self.__current_df)
 
-            while more_available and len(self.current_df) < limit and item_counter < total_jobs_expected:
+            while more_available and len(self.__current_df) < limit and item_counter < total_jobs_expected:
                 # Load all available jobs, as well as "load more" button and some footer info
                 job_items = self.__get_elements(By.CLASS_NAME, self.ACTIVE_JOBS_CLASS)
 
@@ -204,7 +281,7 @@ class KarriereAtParser:
                         self.__get_element(By.CSS_SELECTOR, self.JOB_IFRAME_SELECTOR)
 
                         job_name = job_name_element.text
-                        job_url = self.driver.current_url
+                        job_url = self.__driver.current_url
 
                         id_pattern = r'[^#]+$'
                         job_id = re.search(id_pattern, job_url).group(0)
@@ -223,11 +300,11 @@ class KarriereAtParser:
 
                         data = [job_name, job_id, job_url, job_company, job_location, job_employment_types, job_salary,
                                 job_experience]
-                        self.current_df.loc[item_counter + df_len_modifier] = data
+                        self.__current_df.loc[item_counter + df_len_modifier] = data
 
                     except Exception as e:
                         print("An exception while parsing jobs", e)
-                        self.driver.save_screenshot(f"crash_on_{item_counter}.png")
+                        self.__driver.save_screenshot(f"crash_on_{item_counter}.png")
 
                     item_counter += 1
 
@@ -245,20 +322,26 @@ class KarriereAtParser:
             print(
                 f"Speed: {full_exec_time / max(1, df_len_modifier + item_counter):.2f} in total, {cur_exec_time / max(1, item_counter):.2f} sec/elem in current url;")
 
-        self.driver.quit()
+        self.__driver.quit()
 
         print("=== Finished parsing ===")
 
-        self.current_df = self.current_df.drop_duplicates(subset="ID", keep='last')
+        self.__current_df = self.__current_df.drop_duplicates(subset="ID", keep='last')
 
     def __load_more_jobs(self, item_counter):
+        """
+        Clicks a load-more button and waits until it loads more jobs.
+        :param item_counter: the last old element number
+        :return: returns True if successful, False otherwise
+        """
+
         try:
             load_more_btn = self.__get_element(By.CLASS_NAME, self.LOAD_MORE_BTN_CLASS, hard=True)
             if load_more_btn is not None:
                 load_more_btn.click()
             else:
                 return False
-            WebDriverWait(self.driver, self.WAIT_TIMER).until(
+            WebDriverWait(self.__driver, self.WAIT_TIMER).until(
                 lambda d: len(d.find_elements(By.XPATH, "//*[@class='m-jobsList__item']")) > item_counter
             )
             return True
@@ -268,16 +351,24 @@ class KarriereAtParser:
             print(f"Exception while loading more jobs: {e}")
             return False
 
-    def fetch_jobs(self, jobs_list, location, length_limit=9999, auto_export=True):
-        urls = self.__build_links(jobs_list, location)
+    def fetch_jobs(self, jobs_list, locations, length_limit=9999, auto_export=True):
+        """
+        A callable function to initiate parsing
+        :param jobs_list: a list of jobs
+        :param locations: a list of locations
+        :param length_limit: a hard limit for the number of jobs
+        :param auto_export: True to automatically export jobs to .csv file, True by default
+        :return: a dataframe with results (self.current_df)
+        """
+        urls = self.__build_links(jobs_list, locations)
         self.__fetch_jobs_data(urls, length_limit)
-        if len(self.current_df) == 0:
+        if len(self.__current_df) == 0:
             print("! No jobs were found")
         else:
-            print(f"! {len(self.current_df)} jobs were found")
+            print(f"! {len(self.__current_df)} jobs were found")
             if auto_export:
-                self.current_df.to_csv(
-                    f"karriere_at_paring_{jobs_list[0].replace(' ', '_')}_{datetime.now().strftime('%Y_%m_%d_%H_%M')}.csv")
+                self.__current_df.to_csv(
+                    f"karriere_at_parsing_{"_und_".join(jobs_list)}_in_{"_und_".join(locations)}_am_{datetime.now().strftime('%Y_%m_%d_%H_%M')}.csv".replace(' ','_'))
                 print("! Exported data to csv")
 
-        return self.current_df
+        return self.__current_df
