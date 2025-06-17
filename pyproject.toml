@@ -1,6 +1,6 @@
 [project]
 name = "karriere-at-parser"
-version = "0.0.1"
+version = "1.0.0"
 description = "A scraper for job listings from karriere.at"
 authors = [
     {name = "Boris Timashov",email = "boristimashov21@gmail.com"}

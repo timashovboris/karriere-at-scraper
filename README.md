@@ -7,16 +7,16 @@ This project is a web scraper for Karriere.at, a job search platform in Austria.
 
 ### Features
 - Automated job search and data extraction from Karriere.at
-- Uses Selenium WebDriver (Firefox) for web scraping
+- Uses Selenium WebDriver for web scraping
 - Proxy support for anonymous requests
-- Handles pagination and dynamically loads more job listings
+- Can parse many job types and locations in one run
 - Saves extracted job data to a CSV file
 
 ### Requirements
 - Python 3.x
 - Selenium
-- Firefox WebDriver (Geckodriver)
-- FreeProxy (optional for proxy support)
+- a WebDriver (Geckodriver, Chromedriver, or Microsoft Edge WebDriver)
+- FreeProxy (for proxy support)
 - Pandas (for data processing)
 
 ---
@@ -26,16 +26,16 @@ This project is a web scraper for Karriere.at, a job search platform in Austria.
 ### Übersicht
 Dieses Projekt ist ein Web Scraper für Karriere.at, eine Jobsuchplattform in Österreich. Es automatisiert den Prozess des Abrufs von Stellenangeboten auf der Grundlage von bestimmten Jobtiteln und Standorten. Der Scraper extrahiert Details wie Jobtitel, ID, URL, Unternehmen, Ort, Beschäftigungsart, Gehalt und erforderliche Erfahrung.
 
-### Features
+### Funktionen
 - Automatisierte Jobsuche und Datenextraktion von Karriere.at
-- Verwendet Selenium WebDriver (Firefox) für Web Scraping
+- Verwendet Selenium WebDriver für Web Scraping
 - Proxy-Unterstützung für anonyme Anfragen
-- Verarbeitet Paginierung und lädt dynamisch mehr Jobangebote
-- Speichert extrahierte Jobdaten in einer CSV-Datei
+- Kann viele Jobtypen und Standorte in einem Durchgang analysieren
+- Speichert die extrahierten Jobdaten in einer CSV-Datei
 
-### Requirements
+### Anforderungen
 - Python 3.x
 - Selenium
-- Firefox WebDriver (Geckodriver)
-- FreeProxy (optional für Proxy-Unterstützung)
+- ein WebDriver (Geckodriver, Chromedriver oder Microsoft Edge WebDriver)
+- FreeProxy (für Proxy-Unterstützung)
 - Pandas (für die Datenverarbeitung)
