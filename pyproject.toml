@@ -5,7 +5,7 @@ description = "A scraper for job listings from karriere.at"
 authors = [
     {name = "Boris Timashov",email = "boristimashov21@gmail.com"}
 ]
-license = {text = "MIT"}
+license = {text = "EUPL"}
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
