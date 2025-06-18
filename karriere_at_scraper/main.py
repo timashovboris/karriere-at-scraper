@@ -17,7 +17,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
 
-class KarriereAtParser:
+class KarriereAtScraper:
     # Website base url
     BASE_URL = "https://www.karriere.at/jobs"
 
@@ -50,7 +50,7 @@ class KarriereAtParser:
         self.__driver_name = driver_name.upper()
 
         if self.__driver_name not in ['FIREFOX', 'EDGE', 'CHROME']:
-            raise ValueError(f"This parser only supports Firefox, Edge, and Chrome! Got {self.__driver_name}.")
+            raise ValueError(f"This code only supports Firefox, Edge, and Chrome! Got {self.__driver_name}.")
 
         self.__driver_dir = driver_dir
         self.__driver = None
@@ -60,9 +60,11 @@ class KarriereAtParser:
         """Returns current dataframe"""
         return self.__current_df
 
-    def fetch_jobs(self, jobs_list, locations, remove_duplicates=True, csv_name="", length_limit=9999, export=True):
+    def fetch_jobs(self, jobs_list, locations, use_proxy=True, remove_duplicates=True, csv_name="", length_limit=9999,
+                   export=True):
         """
         A callable function to initiate parsing
+        :param use_proxy: True if you want to connect with proxy
         :param jobs_list: a list of jobs
         :param locations: a list of locations
         :param remove_duplicates: True to remove duplicate jobs from dataframe, True by default
@@ -72,7 +74,7 @@ class KarriereAtParser:
         :return: a dataframe with results (self.current_df)
         """
         urls = self.__build_links(jobs_list, locations)
-        self.__fetch_jobs_data(urls, length_limit)
+        self.__fetch_jobs_data(urls, length_limit, use_proxy=use_proxy)
 
         if len(self.__current_df) == 0:
             print("! No jobs were found")
@@ -117,7 +119,7 @@ class KarriereAtParser:
             driver_options = FirefoxOptions()
         elif self.__driver_name == 'EDGE':
             driver_options = EdgeOptions()
-        else: #Chrome
+        else:  # Chrome
             driver_options = ChromeOptions()
 
         driver_options.add_argument("--headless")  # Run in headless mode
@@ -137,11 +139,10 @@ class KarriereAtParser:
         elif self.__driver_name == 'EDGE':
             service = EdgeService(self.__driver_dir)
             self.__driver = webdriver.Edge(service=service, options=driver_options)
-        else: #Chrome
+        else:  # Chrome
             service = ChromeService(self.__driver_dir)
             self.__driver = webdriver.Chrome(service=service, options=driver_options)
         # endregion
-
 
     def __build_links(self, jobs, locations):
         """
@@ -344,23 +345,23 @@ class KarriereAtParser:
 
                         self.__get_element(By.CSS_SELECTOR, self.JOB_IFRAME_SELECTOR)
 
+                        # Get job name
                         job_name = job_name_element.text
                         job_url = self.__driver.current_url
 
+                        # Get job id
                         id_pattern = r'[^#]+$'
                         job_id = re.search(id_pattern, job_url).group(0)
 
+                        # Get job URL
                         job_url = f"{self.BASE_URL}/{job_id}"
 
-                        job_company = self.__get_element_text(By.CLASS_NAME, 'm-jobsListItem__company', driver=job,
-                                                              hard=False)
-                        job_location = self.__get_element_text(By.CSS_SELECTOR, '.m-keyfactBox__jobLocations',
-                                                               hard=False)
-                        job_employment_types = self.__get_element_text(By.CSS_SELECTOR,
-                                                                       '.m-keyfactBox__jobEmploymentTypes', hard=False)
-                        job_salary = self.__get_element_text(By.CSS_SELECTOR, '.m-keyfactBox__jobSalaryRange',
-                                                             hard=False)
-                        job_experience = self.__get_element_text(By.CSS_SELECTOR, '.m-keyfactBox__jobLevel', hard=False)
+                        # Get job details
+                        job_company = self.__get_element_text(By.CLASS_NAME, self.COMPANY, driver=job)
+                        job_location = self.__get_element_text(By.CSS_SELECTOR, self.LOCATION)
+                        job_employment_types = self.__get_element_text(By.CSS_SELECTOR, self.EMPLOYMENT_TYPE)
+                        job_salary = self.__get_element_text(By.CSS_SELECTOR, self.SALARY)
+                        job_experience = self.__get_element_text(By.CSS_SELECTOR, self.EXPERIENCE)
 
                         data = [job_name, job_id, job_url, job_company, job_location, job_employment_types, job_salary,
                                 job_experience]
