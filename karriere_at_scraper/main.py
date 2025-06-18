@@ -22,7 +22,7 @@ class KarriereAtScraper:
     BASE_URL = "https://www.karriere.at/jobs"
 
     # Columns for dataframe
-    DF_COLUMNS = ["Name", "ID", "URL", "Company", "Location", "Employment type", "Salary", "Experience"]
+    DF_COLUMNS = ["Name", "ID", "URL", "Company", "Location", "Employment type", "Salary", "Job level"]
 
     # IDs and classes of utility elements
     SEARCHBAR_ID = 'keywords'
@@ -40,7 +40,7 @@ class KarriereAtScraper:
     LOCATION = '.m-keyfactBox__jobLocations'
     EMPLOYMENT_TYPE = '.m-keyfactBox__jobEmploymentTypes'
     SALARY = '.m-keyfactBox__jobSalaryRange'
-    EXPERIENCE = '.m-keyfactBox__jobLevel'
+    JOB_TYPE = '.m-keyfactBox__jobLevel'
 
     # Utility values
     WAIT_TIMER = 5
@@ -361,7 +361,7 @@ class KarriereAtScraper:
                         job_location = self.__get_element_text(By.CSS_SELECTOR, self.LOCATION)
                         job_employment_types = self.__get_element_text(By.CSS_SELECTOR, self.EMPLOYMENT_TYPE)
                         job_salary = self.__get_element_text(By.CSS_SELECTOR, self.SALARY)
-                        job_experience = self.__get_element_text(By.CSS_SELECTOR, self.EXPERIENCE)
+                        job_experience = self.__get_element_text(By.CSS_SELECTOR, self.JOB_TYPE)
 
                         data = [job_name, job_id, job_url, job_company, job_location, job_employment_types, job_salary,
                                 job_experience]

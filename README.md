@@ -1,29 +1,47 @@
 # Karriere.at Job Scraper
 
 ## Overview
+
 ### English
-This project is a web scraper for Karriere.at, a job search platform in Austria. It automates the process of retrieving job listings based on specified job titles and locations. The scraper extracts details such as job title, ID, URL, company, location, employment type, salary, and required experience.
+
+This software is a web scraper for karriere.at, an Austrian job search platform. It automates the process of retrieving
+job listings based on specified job titles and locations. The scraper extracts details such as job title, ID, URL,
+company,
+location, employment type, salary and job level.
+
+The exported data are raw strings that need to be further processed for any data analysis.
 
 ### Deutsch
-Dieses Projekt ist ein Web Scraper für Karriere.at, eine Jobsuchplattform in Österreich. Es automatisiert den Prozess des Abrufs von Stellenangeboten auf der Grundlage von bestimmten Jobtiteln und Standorten. Der Scraper extrahiert Details wie Jobtitel, ID, URL, Unternehmen, Ort, Beschäftigungsart, Gehalt und erforderliche Erfahrung.
+
+Diese Software ist ein Web Scraper für karriere.at, eine österreichische Jobsuchplattform. Es automatisiert den Prozess
+des Abrufs von
+Stellenangeboten auf der Grundlage von bestimmten Jobtiteln und Standorten. Der Scraper extrahiert Details wie Jobtitel,
+ID, URL, Unternehmen, Ort, Beschäftigungsart, Gehalt und Joblevel.
+
+Die exportierten Daten sind Rohdaten, die für eine Datenanalyse weiterverarbeitet werden müssen.
+
+---
 
 ## Features
+
 - Automated job search and data extraction from Karriere.at
 - Uses Selenium WebDriver for web scraping
 - Proxy support for anonymous requests
-- Can parse many job types and locations in one run
+- Software can scrape many job types and locations in one run
 - Saves extracted job data to a CSV file
 
 ## Requirements
+
 - Python 3.x
 - Selenium
 - a WebDriver (Geckodriver, Chromedriver, or Microsoft Edge WebDriver)
-- [FreeProxy](https://github.com/jundymek/free-proxy) (for optional proxy support)
+- [FreeProxy](https://github.com/jundymek/free-proxy) (for proxy support)
 - Pandas (for data processing)
 
 ---
 
 ## Quick start
+
 All you have to do is to decide what jobs and in what locations you want to find.
 
 ```python
@@ -41,8 +59,12 @@ kp.fetch_jobs(jobs, locations)  # fetches data and stores it in the object
 df = kp.get_df()  # returns pandas dataframe
 ```
 
+---
+
 ## Functions
+
 ### fetch_jobs
+
 A callable that initiates parsing.
 
 ```python
@@ -53,22 +75,29 @@ kp = KarriereAtScraper("firefox", "path/to/driver")
 kp.fetch_jobs(jobs_list=[], locations=[], remove_duplicates=True, csv_name="", length_limit=9999, export=True)
 ```
 
-A stored dataframe is not being cleared when this function is called. You'll need to clean it manually with [clear_df](#clear_df) function.
+A stored dataframe is not being cleared when this function is called. You'll need to clean it manually
+with [clear_df](#clear_df) function.
 
 #### Parameters
 
 * jobs_list (list): A list of job titles or keywords to search for. This parameter is mandatory.
 * locations (list): A list of geographical locations where the jobs should be searched. This parameter is mandatory.
 * use_proxy (bool, optional): True if you want to connect with proxy. Defaults to True.
-* remove_duplicates (bool, optional): If set to True, duplicate job entries will be removed from the resulting DataFrame. Defaults to True.
-* csv_name (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name will be automatically generated.
+* remove_duplicates (bool, optional): If set to True, duplicate job entries will be removed from the resulting
+  DataFrame. Defaults to True.
+* csv_name (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name will
+  be automatically generated.
 * length_limit (int, optional): A hard limit for the maximum number of jobs to fetch. Defaults to 9999.
-* export (bool, optional): If set to True, the fetched jobs will be automatically exported to a .csv file. Defaults to True.
+* export (bool, optional): If set to True, the fetched jobs will be automatically exported to a .csv file. Defaults to
+  True.
 
 #### Returns
-* pandas.DataFrame: A DataFrame containing the parsed job listings. This DataFrame is also stored internally as self.current_df.
+
+* pandas.DataFrame: A DataFrame containing the parsed job listings. This DataFrame is also stored internally as
+  self.current_df.
 
 ### export_df_to_csv
+
 Exports the current dataframe to a csv file.
 
 ```python
@@ -80,9 +109,11 @@ kp.export_df_to_csv(csv_name="")
 ```
 
 #### Parameters
+
 * csv_name: string, the name of the csv file
 
 ### get_df
+
 Returns current dataframe.
 
 ```python
@@ -94,6 +125,7 @@ df = kp.get_df()
 ```
 
 ### clear_df
+
 Manually removes all the entries from the stored dataframe.
 
 ```python
@@ -103,6 +135,10 @@ kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
 kp.clear_df()
 ```
+
+---
+
 ## License
-This code is open. It is distributed under the [European Union Public License v 1.2](LICENSE).
+
+This is open software. It is distributed under the [European Union Public License v 1.2](LICENSE).
 
