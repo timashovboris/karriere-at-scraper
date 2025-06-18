@@ -1,3 +1,5 @@
+from karriere_at_jobs_analyzer import process_salaries
+
 # Karriere.at Job Scraper
 
 ## Overview
@@ -59,6 +61,9 @@ kp.fetch_jobs(jobs, locations)  # fetches data and stores it in the object
 df = kp.get_df()  # returns pandas dataframe
 ```
 
+Gathering information may take considerable time depending on your machine. To avoid the need for repeated scraping, the
+results are automatically saved in csv to the runtime directory.
+
 ---
 
 ## Functions
@@ -76,19 +81,19 @@ kp.fetch_jobs(jobs_list=[], locations=[], remove_duplicates=True, csv_name="", l
 ```
 
 A stored dataframe is not being cleared when this function is called. You'll need to clean it manually
-with [clear_df](#clear_df) function.
+with ```clear_df``` function.
 
 #### Parameters
 
-* jobs_list (list): A list of job titles or keywords to search for. This parameter is mandatory.
-* locations (list): A list of geographical locations where the jobs should be searched. This parameter is mandatory.
-* use_proxy (bool, optional): True if you want to connect with proxy. Defaults to True.
-* remove_duplicates (bool, optional): If set to True, duplicate job entries will be removed from the resulting
+* ```jobs_list``` (list): A list of job titles or keywords to search for. This parameter is mandatory.
+* ```locations``` (list): A list of geographical locations where the jobs should be searched. This parameter is mandatory.
+* ```use_proxy``` (bool, optional): True if you want to connect with proxy. Defaults to True.
+* ```remove_duplicates``` (bool, optional): If set to True, duplicate job entries will be removed from the resulting
   DataFrame. Defaults to True.
-* csv_name (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name will
+* ```csv_name``` (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name will
   be automatically generated.
-* length_limit (int, optional): A hard limit for the maximum number of jobs to fetch. Defaults to 9999.
-* export (bool, optional): If set to True, the fetched jobs will be automatically exported to a .csv file. Defaults to
+* ```length_limit``` (int, optional): A hard limit for the maximum number of jobs to fetch. Defaults to 9999.
+* ```export``` (bool, optional): If set to True, the fetched jobs will be automatically exported to a .csv file. Defaults to
   True.
 
 #### Returns
@@ -134,6 +139,39 @@ from karriere_at_scraper import KarriereAtScraper
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
 kp.clear_df()
+```
+
+---
+
+## Analysing the collected data
+
+This software provides some tools to analyse and visualise the collected data.
+
+### process_salaries
+
+Initially, the data are not normalised in any way after collection. Calling this function will add columns to the dataframe with the maximum, minimum, and estimated average monthly salary based on the available data.
+
+```python
+from karriere_at_jobs_analyzer import process_salaries
+
+df = ...
+process_salaries(df)
+```
+
+### draw_salaries_chart
+
+After calling ```process_salaries``` you can draw a salaries distribution chart.
+It includes average and median values, 25 and 75 percentiles and a kernel density estimate.
+It drops extreme values automatically using interquartile range.
+
+You can choose two locales for labels - English ("en", default) and German ("de")
+
+```python
+from karriere_at_jobs_analyzer import process_salaries, draw_salaries_chart
+
+df = ...
+process_salaries(df)
+draw_salaries_chart(df, locale="de")
 ```
 
 ---

@@ -222,7 +222,7 @@ class KarriereAtScraper:
             print(f"! Failed to get elements of {name}: {e}")
             return []
 
-    def __get_element_text(self, how, name, default_value="N/A", driver=None, hard=False):
+    def __get_element_text(self, how, name, default_value=pd.NA, driver=None, hard=False):
         """
         Gets a WebElement and returns its text
 
