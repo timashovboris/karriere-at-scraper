@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from karriere_at_scraper.analyser.charts_locales import get_locale
+from karriere_at_scraper.analyser.charts_locales import ChartsLocale
 
 _MIN_SALARY_COL = 'Minimum monthly salary'
 _MAX_SALARY_COL = 'Maximum monthly salary'
@@ -110,22 +110,22 @@ def draw_salaries_chart(df, locale = "en"):
     ax.text(rect.get_x() + rect.get_width() / 2, height + 1, f'{percentage:.1f}%',
             ha='center', fontsize=10, color='black')
 
-    label_texts = get_locale(locale)
+    locale = ChartsLocale(locale)
 
     # Add mean and median lines
-    plt.axvline(mean_salary, color='red', linestyle='dashed', linewidth=2, label=f'{label_texts.get("avg")}: {mean_salary:,.0f} €')
-    plt.axvline(median_salary, color='green', linestyle='dashed', linewidth=2, label=f'{label_texts.get("med")}: {median_salary:,.0f} €')
-    plt.axvline(q25, linewidth=1, label=f'{label_texts.get("q25")}: {q25:,.0f} €')
-    plt.axvline(q75, linewidth=1, label=f'{label_texts.get("q75")}: {q75:,.0f} €')
+    plt.axvline(mean_salary, color='red', linestyle='dashed', linewidth=2, label=f'{locale.get("avg")}: {mean_salary:,.0f} €')
+    plt.axvline(median_salary, color='green', linestyle='dashed', linewidth=2, label=f'{locale.get("med")}: {median_salary:,.0f} €')
+    plt.axvline(q25, linewidth=1, label=f'{locale.get("q25")}: {q25:,.0f} €')
+    plt.axvline(q75, linewidth=1, label=f'{locale.get("q75")}: {q75:,.0f} €')
 
     # Format x-axis labels with bin ranges
     bin_labels = [f"{int(bins[i])} € - {int(bins[i + 1])} €" for i in range(len(bins) - 1)]
     plt.xticks((bins[:-1] + bins[1:]) / 2, bin_labels, rotation=60)
 
     # Labels and title
-    plt.xlabel(label_texts.get("salaries_xlabel"))
-    plt.ylabel(label_texts.get("salaries_ylabel"))
-    plt.title(label_texts.get("salaries_title"))
+    plt.xlabel(locale.get("salaries_xlabel"))
+    plt.ylabel(locale.get("salaries_ylabel"))
+    plt.title(locale.get("salaries_title"))
 
     # Show legend
     plt.legend()
