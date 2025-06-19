@@ -82,7 +82,7 @@ class KarriereAtScraper:
             print(f"! {len(self.__current_df)} jobs were found")
             if export:
                 if csv_name == "":
-                    csv_name = (f"karriere_at_parsing_{"_und_".join(jobs_list)}_in_{"_und_".join(locations)}"
+                    csv_name = (f"karriere_at_scraping_{"_und_".join(jobs_list)}_in_{"_und_".join(locations)}"
                                 f"_am_{datetime.now().strftime('%Y_%m_%d_%H_%M')}.csv").replace(' ', '_')
                 self.__current_df.to_csv(csv_name)
                 print("! Exported data to csv")

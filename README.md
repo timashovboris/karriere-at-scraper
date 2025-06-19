@@ -1,5 +1,3 @@
-from karriere_at_jobs_analyzer import process_salaries
-
 # Karriere.at Job Scraper
 
 ## Overview
@@ -11,7 +9,8 @@ job listings based on specified job titles and locations. The scraper extracts d
 company,
 location, employment type, salary and job level.
 
-The exported data are raw strings that need to be further processed for any data analysis.
+The exported data are raw strings that need to be further processed for any data analysis. Some analysis instruments are
+provided with the package.
 
 ### Deutsch
 
@@ -20,7 +19,8 @@ des Abrufs von
 Stellenangeboten auf der Grundlage von bestimmten Jobtiteln und Standorten. Der Scraper extrahiert Details wie Jobtitel,
 ID, URL, Unternehmen, Ort, Beschäftigungsart, Gehalt und Joblevel.
 
-Die exportierten Daten sind Rohdaten, die für eine Datenanalyse weiterverarbeitet werden müssen.
+Die exportierten Daten sind Rohdaten, die für eine Datenanalyse weiterverarbeitet werden müssen. Einige
+Analyseinstrumente sind mit dem Paket mitgeliefert.
 
 ---
 
@@ -39,6 +39,20 @@ Die exportierten Daten sind Rohdaten, die für eine Datenanalyse weiterverarbeit
 - a WebDriver (Geckodriver, Chromedriver, or Microsoft Edge WebDriver)
 - [FreeProxy](https://github.com/jundymek/free-proxy) (for proxy support)
 - Pandas (for data processing)
+- Numpy,
+- Matplotlib,
+- Seaborn
+
+### Webdriver note
+
+Selenium requires a web driver to work, it depends on your browser. This software supports firefox, chrome, and
+Microsoft Edge. Firefox was the target browser during development.
+
+You can find webdrivers in the official sources:
+
+- Firefox - [Geckodriver](https://firefox-source-docs.mozilla.org/testing/geckodriver/index.html)
+- Google Chrome - [ChromeDriver](https://developer.chrome.com/docs/chromedriver/downloads)
+- Microsoft Edge - [Microsoft Edge WebDriver](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver?form=MA13LH)
 
 ---
 
@@ -86,14 +100,17 @@ with ```clear_df``` function.
 #### Parameters
 
 * ```jobs_list``` (list): A list of job titles or keywords to search for. This parameter is mandatory.
-* ```locations``` (list): A list of geographical locations where the jobs should be searched. This parameter is mandatory.
+* ```locations``` (list): A list of geographical locations where the jobs should be searched. This parameter is
+  mandatory.
 * ```use_proxy``` (bool, optional): True if you want to connect with proxy. Defaults to True.
 * ```remove_duplicates``` (bool, optional): If set to True, duplicate job entries will be removed from the resulting
   DataFrame. Defaults to True.
-* ```csv_name``` (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name will
+* ```csv_name``` (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name
+  will
   be automatically generated.
 * ```length_limit``` (int, optional): A hard limit for the maximum number of jobs to fetch. Defaults to 9999.
-* ```export``` (bool, optional): If set to True, the fetched jobs will be automatically exported to a .csv file. Defaults to
+* ```export``` (bool, optional): If set to True, the fetched jobs will be automatically exported to a .csv file.
+  Defaults to
   True.
 
 #### Returns
@@ -149,7 +166,8 @@ This software provides some tools to analyse and visualise the collected data.
 
 ### process_salaries
 
-Initially, the data are not normalised in any way after collection. Calling this function will add columns to the dataframe with the maximum, minimum, and estimated average monthly salary based on the available data.
+Initially, the data are not normalised in any way after collection. Calling this function will add columns to the
+dataframe with the maximum, minimum, and estimated average monthly salary based on the available data.
 
 ```python
 from karriere_at_jobs_analyzer import process_salaries
