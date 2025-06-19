@@ -61,7 +61,7 @@ You can find webdrivers in the official sources:
 All you have to do is to decide what jobs and in what locations you want to find.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 # Creates a parser object with a driver of your choice
 # Browser options are "firefox", "chrome" and "edge"
@@ -87,7 +87,7 @@ results are automatically saved in csv to the runtime directory.
 A callable that initiates parsing.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -123,7 +123,7 @@ with ```clear_df``` function.
 Exports the current dataframe to a csv file.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -139,7 +139,7 @@ kp.export_df_to_csv(csv_name="")
 Returns current dataframe.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -151,7 +151,7 @@ df = kp.get_df()
 Manually removes all the entries from the stored dataframe.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -170,7 +170,7 @@ Initially, the data are not normalised in any way after collection. Calling this
 dataframe with the maximum, minimum, and estimated average monthly salary based on the available data.
 
 ```python
-from karriere_at_jobs_analyzer import process_salaries
+from karriere_at_scraper.analyser import process_salaries
 
 df = ...
 process_salaries(df)
@@ -185,7 +185,7 @@ It drops extreme values automatically using interquartile range.
 You can choose two locales for labels - English ("en", default) and German ("de")
 
 ```python
-from karriere_at_jobs_analyzer import process_salaries, draw_salaries_chart
+from karriere_at_scraper.analyser import process_salaries, draw_salaries_chart
 
 df = ...
 process_salaries(df)

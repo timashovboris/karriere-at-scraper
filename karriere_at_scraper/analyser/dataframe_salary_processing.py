@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from karriere_at_jobs_analyzer.charts_locales import get_locale
+from karriere_at_scraper.analyser.charts_locales import get_locale
 
 _MIN_SALARY_COL = 'Minimum monthly salary'
 _MAX_SALARY_COL = 'Maximum monthly salary'
