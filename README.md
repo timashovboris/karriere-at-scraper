@@ -9,7 +9,8 @@ job listings based on specified job titles and locations. The scraper extracts d
 company,
 location, employment type, salary and job level.
 
-The exported data are raw strings that need to be further processed for any data analysis.
+The exported data are raw strings that need to be further processed for any data analysis. Some analysis instruments are
+provided with the package.
 
 ### Deutsch
 
@@ -18,7 +19,8 @@ des Abrufs von
 Stellenangeboten auf der Grundlage von bestimmten Jobtiteln und Standorten. Der Scraper extrahiert Details wie Jobtitel,
 ID, URL, Unternehmen, Ort, Beschäftigungsart, Gehalt und Joblevel.
 
-Die exportierten Daten sind Rohdaten, die für eine Datenanalyse weiterverarbeitet werden müssen.
+Die exportierten Daten sind Rohdaten, die für eine Datenanalyse weiterverarbeitet werden müssen. Einige
+Analyseinstrumente sind mit dem Paket mitgeliefert.
 
 ---
 
@@ -37,6 +39,20 @@ Die exportierten Daten sind Rohdaten, die für eine Datenanalyse weiterverarbeit
 - a WebDriver (Geckodriver, Chromedriver, or Microsoft Edge WebDriver)
 - [FreeProxy](https://github.com/jundymek/free-proxy) (for proxy support)
 - Pandas (for data processing)
+- Numpy,
+- Matplotlib,
+- Seaborn
+
+### Webdriver note
+
+Selenium requires a web driver to work, it depends on your browser. This software supports firefox, chrome, and
+Microsoft Edge. Firefox was the target browser during development.
+
+You can find webdrivers in the official sources:
+
+- Firefox - [Geckodriver](https://firefox-source-docs.mozilla.org/testing/geckodriver/index.html)
+- Google Chrome - [ChromeDriver](https://developer.chrome.com/docs/chromedriver/downloads)
+- Microsoft Edge - [Microsoft Edge WebDriver](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver?form=MA13LH)
 
 ---
 
@@ -45,7 +61,7 @@ Die exportierten Daten sind Rohdaten, die für eine Datenanalyse weiterverarbeit
 All you have to do is to decide what jobs and in what locations you want to find.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 # Creates a parser object with a driver of your choice
 # Browser options are "firefox", "chrome" and "edge"
@@ -59,6 +75,9 @@ kp.fetch_jobs(jobs, locations)  # fetches data and stores it in the object
 df = kp.get_df()  # returns pandas dataframe
 ```
 
+Gathering information may take considerable time depending on your machine. To avoid the need for repeated scraping, the
+results are automatically saved in csv to the runtime directory.
+
 ---
 
 ## Functions
@@ -68,7 +87,7 @@ df = kp.get_df()  # returns pandas dataframe
 A callable that initiates parsing.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -76,19 +95,22 @@ kp.fetch_jobs(jobs_list=[], locations=[], remove_duplicates=True, csv_name="", l
 ```
 
 A stored dataframe is not being cleared when this function is called. You'll need to clean it manually
-with [clear_df](#clear_df) function.
+with ```clear_df``` function.
 
 #### Parameters
 
-* jobs_list (list): A list of job titles or keywords to search for. This parameter is mandatory.
-* locations (list): A list of geographical locations where the jobs should be searched. This parameter is mandatory.
-* use_proxy (bool, optional): True if you want to connect with proxy. Defaults to True.
-* remove_duplicates (bool, optional): If set to True, duplicate job entries will be removed from the resulting
+* ```jobs_list``` (list): A list of job titles or keywords to search for. This parameter is mandatory.
+* ```locations``` (list): A list of geographical locations where the jobs should be searched. This parameter is
+  mandatory.
+* ```use_proxy``` (bool, optional): True if you want to connect with proxy. Defaults to True.
+* ```remove_duplicates``` (bool, optional): If set to True, duplicate job entries will be removed from the resulting
   DataFrame. Defaults to True.
-* csv_name (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name will
+* ```csv_name``` (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name
+  will
   be automatically generated.
-* length_limit (int, optional): A hard limit for the maximum number of jobs to fetch. Defaults to 9999.
-* export (bool, optional): If set to True, the fetched jobs will be automatically exported to a .csv file. Defaults to
+* ```length_limit``` (int, optional): A hard limit for the maximum number of jobs to fetch. Defaults to 9999.
+* ```export``` (bool, optional): If set to True, the fetched jobs will be automatically exported to a .csv file.
+  Defaults to
   True.
 
 #### Returns
@@ -101,7 +123,7 @@ with [clear_df](#clear_df) function.
 Exports the current dataframe to a csv file.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -117,7 +139,7 @@ kp.export_df_to_csv(csv_name="")
 Returns current dataframe.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -129,11 +151,45 @@ df = kp.get_df()
 Manually removes all the entries from the stored dataframe.
 
 ```python
-from karriere_at_scraper import KarriereAtScraper
+from karriere_at_scraper.scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
 kp.clear_df()
+```
+
+---
+
+## Analysing the collected data
+
+This software provides some tools to analyse and visualise the collected data.
+
+### process_salaries
+
+Initially, the data are not normalised in any way after collection. Calling this function will add columns to the
+dataframe with the maximum, minimum, and estimated average monthly salary based on the available data.
+
+```python
+from karriere_at_scraper.analyser import process_salaries
+
+df = ...
+process_salaries(df)
+```
+
+### draw_salaries_chart
+
+After calling ```process_salaries``` you can draw a salaries distribution chart.
+It includes average and median values, 25 and 75 percentiles and a kernel density estimate.
+It drops extreme values automatically using interquartile range.
+
+You can choose two locales for labels - English ("en", default) and German ("de")
+
+```python
+from karriere_at_scraper.analyser import process_salaries, draw_salaries_chart
+
+df = ...
+process_salaries(df)
+draw_salaries_chart(df, locale="de")
 ```
 
 ---
