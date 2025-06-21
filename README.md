@@ -4,7 +4,7 @@
 
 ### English
 
-This software is a web scraper for karriere.at, an Austrian job search platform. It automates the process of retrieving
+This software is a web scraper for [karriere.at](https://www.karriere.at/), an Austrian job search platform. It automates the process of retrieving
 job listings based on specified job titles and locations. The scraper extracts details such as job title, ID, URL,
 company,
 location, employment type, salary and job level.
@@ -14,7 +14,7 @@ provided with the package.
 
 ### Deutsch
 
-Diese Software ist ein Web Scraper für karriere.at, eine österreichische Jobsuchplattform. Es automatisiert den Prozess
+Diese Software ist ein Web Scraper für [karriere.at](https://www.karriere.at/), eine österreichische Jobsuchplattform. Es automatisiert den Prozess
 des Abrufs von
 Stellenangeboten auf der Grundlage von bestimmten Jobtiteln und Standorten. Der Scraper extrahiert Details wie Jobtitel,
 ID, URL, Unternehmen, Ort, Beschäftigungsart, Gehalt und Joblevel.
@@ -61,7 +61,7 @@ You can find webdrivers in the official sources:
 All you have to do is to decide what jobs and in what locations you want to find.
 
 ```python
-from karriere_at_scraper.scraper import KarriereAtScraper
+from karriere_at_scraper import KarriereAtScraper
 
 # Creates a parser object with a driver of your choice
 # Browser options are "firefox", "chrome" and "edge"
@@ -87,7 +87,7 @@ results are automatically saved in csv to the runtime directory.
 A callable that initiates parsing.
 
 ```python
-from karriere_at_scraper.scraper import KarriereAtScraper
+from karriere_at_scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -123,7 +123,7 @@ with ```clear_df``` function.
 Exports the current dataframe to a csv file.
 
 ```python
-from karriere_at_scraper.scraper import KarriereAtScraper
+from karriere_at_scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -139,7 +139,7 @@ kp.export_df_to_csv(csv_name="")
 Returns current dataframe.
 
 ```python
-from karriere_at_scraper.scraper import KarriereAtScraper
+from karriere_at_scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -151,7 +151,7 @@ df = kp.get_df()
 Manually removes all the entries from the stored dataframe.
 
 ```python
-from karriere_at_scraper.scraper import KarriereAtScraper
+from karriere_at_scraper import KarriereAtScraper
 
 kp = KarriereAtScraper("firefox", "path/to/driver")
 ...
@@ -170,7 +170,7 @@ Initially, the data are not normalised in any way after collection. Calling this
 dataframe with the maximum, minimum, and estimated average monthly salary based on the available data.
 
 ```python
-from karriere_at_scraper.analyser import process_salaries
+from karriere_at_scraper import process_salaries
 
 df = ...
 process_salaries(df)
@@ -185,7 +185,7 @@ It drops extreme values automatically using interquartile range.
 You can choose two locales for labels - English ("en", default) and German ("de")
 
 ```python
-from karriere_at_scraper.analyser import process_salaries, draw_salaries_chart
+from karriere_at_scraper import process_salaries, draw_salaries_chart
 
 df = ...
 process_salaries(df)
@@ -193,6 +193,19 @@ draw_salaries_chart(df, locale="de")
 ```
 
 ---
+
+### draw_employment_types_chart
+
+This function allows you to draw a distribution chart of available employment types.
+
+You can choose two locales for labels - English ("en", default) and German ("de"). Keep in mind that employmen types' labels are not translated and are displayed as on the website (in german).
+
+```python
+from karriere_at_scraper import draw_employment_types_chart
+
+df = ...
+draw_employment_types_chart(df, locale="de")
+```
 
 ## License
 
