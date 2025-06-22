@@ -6,6 +6,7 @@ import pandas as pd
 from fp.fp import FreeProxy
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException
+from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
@@ -43,7 +44,7 @@ class KarriereAtScraper:
     JOB_TYPE = '.m-keyfactBox__jobLevel'
 
     # Utility values
-    WAIT_TIMER = 5
+    WAIT_TIMER = 2
     DRIVER_RETRIES = 2
 
     def __init__(self, driver_name, driver_dir):
@@ -162,7 +163,7 @@ class KarriereAtScraper:
         ]
         return job_links
 
-    def __get_element(self, how, name, driver=None, hard=False):
+    def __get_element(self, how, name, driver=None, hard=False, clickable=False):
         """
         Tries to get an element from a page, will retry if encounters a StaleElementReferenceException
 
@@ -170,6 +171,7 @@ class KarriereAtScraper:
         :param name: a value to be used with "how" - selector for a By.CSS_SELECTOR, id for By.ID, etc.
         :param driver: a custom selenium webdriver (or element), self.driver by default
         :param hard: False to wait before trying to get an element, True to do it straight ahead, False by default
+        :param clickable: True if element will be clicked later, False by default
         :return: a WebElement or None
         """
 
@@ -181,11 +183,15 @@ class KarriereAtScraper:
                     element = WebDriverWait(driver, self.WAIT_TIMER).until(
                         ec.presence_of_element_located((how, name))
                     )
+                    if clickable:
+                        actions = ActionChains(self.__driver)
+                        actions.move_to_element(element).perform()
                 else:  # if wanted to try to get an element straight ahead
                     element = driver.find_element(how, name)
                 return element
             except StaleElementReferenceException:
                 if attempt < self.DRIVER_RETRIES:
+                    print("Attempt #" + str(attempt + 1))
                     # Element disappeared from DOM, will retry
                     pass
                 else:
@@ -241,16 +247,18 @@ class KarriereAtScraper:
                 # Re-fetch the element right before getting its text
                 elem = self.__get_element(how, name, driver, hard)
                 if elem is None:
+                    #print("Element is None")
                     return default_value
                 else:
-                    res = elem.text.strip()
+                    res = self.__driver.execute_script("return arguments[0].textContent;", elem).strip()
+                    #print("Found text", res)
                     return res
             except StaleElementReferenceException:
                 if attempt < 1:
+                    #print(f"Element {name} disappeared from DOM while getting text. Retrying...")
                     pass
-                    # print(f"Element {name} disappeared from DOM while getting text. Retrying...")
                 else:
-                    # print(f"Element {name} disappeared from DOM after retry while getting text.")
+                    #print(f"Element {name} disappeared from DOM after retry while getting text.")
                     return "EXCEPTION"
             except Exception as e:
                 print(f"Exception encountered while getting text of {name}: {e}")
@@ -280,13 +288,13 @@ class KarriereAtScraper:
         :return: True if cookies were declined, False otherwise
         """
         try:
-            element = self.__get_element(By.ID, self.COOKIE_DENY_ID)
-            element.click()
-            time.sleep(2)
+            element = self.__get_element(By.ID, self.COOKIE_DENY_ID, clickable=True)
+            if element:
+                element.click()
             print("+ Cookies successfully denied")
             return True
-        except Exception:
-            print("- Cookies are not required this time")
+        except Exception as e:
+            print("- Error with cookies.", e)
             return False
 
     def __fetch_jobs_data(self, urls, limit=9999, use_proxy=True):
@@ -301,7 +309,7 @@ class KarriereAtScraper:
         self.__driver.get(self.BASE_URL)
 
         # region Wait until the searchbar is loaded and click on empty space to activate the page
-        searchbar_element = self.__get_element(By.ID, self.SEARCHBAR_ID)
+        searchbar_element = self.__get_element(By.ID, self.SEARCHBAR_ID, clickable=True)
         searchbar_element.click()
         # endregion
 
@@ -339,9 +347,10 @@ class KarriereAtScraper:
                 for job_ind in range(item_counter, len(job_items)):
                     try:
                         job = job_items[job_ind]
-                        job_name_element = self.__get_element(By.CLASS_NAME, self.JOB_TITLE_CLASS, driver=job)
+                        job_name_element = self.__get_element(By.CLASS_NAME, self.JOB_TITLE_CLASS, driver=job,
+                                                              clickable=True)
                         job_name_element_location = job_name_element.location_once_scrolled_into_view
-                        WebDriverWait(self.__driver, 10).until(ec.element_to_be_clickable(job_name_element)).click()
+                        job_name_element.click()
 
                         self.__get_element(By.CSS_SELECTOR, self.JOB_IFRAME_SELECTOR)
 
@@ -368,7 +377,7 @@ class KarriereAtScraper:
                         self.__current_df.loc[item_counter + df_len_modifier] = data
 
                     except Exception as e:
-                        print("An exception while parsing jobs", e)
+                        print("An exception while parsing jobs.", e)
                         self.__driver.save_screenshot(f"crash_on_{item_counter}.png")
 
                     item_counter += 1
@@ -399,7 +408,7 @@ class KarriereAtScraper:
         """
 
         try:
-            load_more_btn = self.__get_element(By.CLASS_NAME, self.LOAD_MORE_BTN_CLASS, hard=False)
+            load_more_btn = self.__get_element(By.CLASS_NAME, self.LOAD_MORE_BTN_CLASS, clickable=True)
             if load_more_btn is not None:
                 load_more_btn.click()
             else:

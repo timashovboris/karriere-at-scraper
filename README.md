@@ -52,7 +52,14 @@ You can find webdrivers in the official sources:
 
 - Firefox - [Geckodriver](https://firefox-source-docs.mozilla.org/testing/geckodriver/index.html)
 - Google Chrome - [ChromeDriver](https://developer.chrome.com/docs/chromedriver/downloads)
-- Microsoft Edge - [Microsoft Edge WebDriver](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver?form=MA13LH)
+- Microsoft
+  Edge - [Microsoft Edge WebDriver](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver?form=MA13LH)
+
+### Data integrity note
+
+The website underwent a design change in 2025. Currently, similar elements on two different pages may have two different
+classes. For example, the labels 'salary' and 'location' may have a similar class without any IDs or unique styles.
+Unfortunately, this software will not collect this data. This issue will be addressed later.
 
 ---
 
@@ -102,7 +109,7 @@ with ```clear_df``` function.
 * ```jobs_list``` (list): A list of job titles or keywords to search for. This parameter is mandatory.
 * ```locations``` (list): A list of geographical locations where the jobs should be searched. This parameter is
   mandatory.
-* ```use_proxy``` (bool, optional): True if you want to connect with proxy. Defaults to True.
+* ```use_proxy``` (bool, optional): True if you want to connect with proxy. Defaults to True. Keep in mind that it may be unstable at times.
 * ```remove_duplicates``` (bool, optional): If set to True, duplicate job entries will be removed from the resulting
   DataFrame. Defaults to True.
 * ```csv_name``` (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name
@@ -190,6 +197,14 @@ from karriere_at_scraper import process_salaries, draw_salaries_chart
 df = ...
 process_salaries(df)
 draw_salaries_chart(df, locale="de")
+```
+
+### draw_employment_types_chart
+
+This function draws a distribution chart of available employment types among job offers.
+
+```python
+from karriere
 ```
 
 ---
