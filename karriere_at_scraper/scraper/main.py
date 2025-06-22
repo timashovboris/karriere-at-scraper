@@ -44,10 +44,20 @@ class KarriereAtScraper:
     JOB_TYPE = '.m-keyfactBox__jobLevel'
 
     # Utility values
-    WAIT_TIMER = 2
     DRIVER_RETRIES = 2
 
-    def __init__(self, driver_name, driver_dir):
+    def __init__(self, driver_name, driver_dir, run_headless=True, use_proxy=True, google_proxy=False,
+                 custom_proxy="", wait_timer=1):
+        """
+        The scraper class
+        :param driver_name: Name of your browser: firefox, edge, or chrome
+        :param driver_dir: Path to your webdriver executable
+        :param run_headless: True if the browser should run in headless mode (on background)
+        :param use_proxy: True if you want to connect with proxy
+        :param google_proxy: True if you want to connect with google proxy (availability depends on the third party)
+        :param custom_proxy: String with custom proxy url. It wil be used as a part of Selenium '--proxy-server=' parameter
+        :param wait_timer: Time in seconds that selenium will wait when looking for elements. 1 second by default.
+        """
         self.__driver_name = driver_name.upper()
 
         if self.__driver_name not in ['FIREFOX', 'EDGE', 'CHROME']:
@@ -56,16 +66,21 @@ class KarriereAtScraper:
         self.__driver_dir = driver_dir
         self.__driver = None
         self.__current_df = pd.DataFrame([], columns=self.DF_COLUMNS)
+        # Utility values
+        self.WAIT_TIMER = wait_timer
+        self.USE_PROXY = use_proxy
+        self.RUN_HEADLESS = run_headless
+        self.GOOGLE_PROXY = google_proxy
+        self.CUSTOM_PROXY = custom_proxy
 
     def get_df(self):
         """Returns current dataframe"""
         return self.__current_df
 
-    def fetch_jobs(self, jobs_list, locations, use_proxy=True, remove_duplicates=True, csv_name="", length_limit=9999,
+    def fetch_jobs(self, jobs_list, locations, remove_duplicates=True, csv_name="", length_limit=9999,
                    export=True):
         """
         A callable function to initiate parsing
-        :param use_proxy: True if you want to connect with proxy
         :param jobs_list: a list of jobs
         :param locations: a list of locations
         :param remove_duplicates: True to remove duplicate jobs from dataframe, True by default
@@ -75,7 +90,7 @@ class KarriereAtScraper:
         :return: a dataframe with results (self.current_df)
         """
         urls = self.__build_links(jobs_list, locations)
-        self.__fetch_jobs_data(urls, length_limit, use_proxy=use_proxy)
+        self.__fetch_jobs_data(urls, length_limit)
 
         if len(self.__current_df) == 0:
             print("! No jobs were found")
@@ -104,11 +119,9 @@ class KarriereAtScraper:
         """Removes all the entries from dataframe"""
         self.__current_df = self.__current_df.iloc[0:0]
 
-    def __create_driver(self, use_proxy=True):
+    def __create_driver(self):
         """
         Creates selenium webdriver
-
-        :param use_proxy: True if you want to connect with a proxy
         """
 
         # Check if driver already exists
@@ -123,14 +136,18 @@ class KarriereAtScraper:
         else:  # Chrome
             driver_options = ChromeOptions()
 
-        driver_options.add_argument("--headless")  # Run in headless mode
+        if self.RUN_HEADLESS:
+            driver_options.add_argument("--headless")  # Run in headless mode
         driver_options.add_argument("--width=1920")
         driver_options.add_argument("--height=1080")
         # Add proxy when required
-        if use_proxy:
-            use_proxy = FreeProxy().get()
-            driver_options.add_argument(f"--proxy-server={use_proxy}")
-            print(f"=== Driver created under the proxy {use_proxy} ===")
+        if self.USE_PROXY:
+            if self.CUSTOM_PROXY != "":
+                proxy_ip = self.CUSTOM_PROXY
+            else:
+                proxy_ip = FreeProxy(google=self.GOOGLE_PROXY).get()
+            driver_options.add_argument(f"--proxy-server={proxy_ip}")
+            print(f"=== Driver created under the proxy {proxy_ip} ===")
         else:
             print(f"=== Driver created ===")
         # Updated with the path to WebDriver
@@ -163,7 +180,7 @@ class KarriereAtScraper:
         ]
         return job_links
 
-    def __get_element(self, how, name, driver=None, hard=False, clickable=False):
+    def __get_element(self, how, name, driver=None, hard=False, clickable=False, wait_time=0):
         """
         Tries to get an element from a page, will retry if encounters a StaleElementReferenceException
 
@@ -172,15 +189,19 @@ class KarriereAtScraper:
         :param driver: a custom selenium webdriver (or element), self.driver by default
         :param hard: False to wait before trying to get an element, True to do it straight ahead, False by default
         :param clickable: True if element will be clicked later, False by default
+        :param wait_time: how long to wait before trying to get an element.
         :return: a WebElement or None
         """
+
+        if wait_time == 0:
+            wait_time = self.WAIT_TIMER
 
         driver = driver or self.__driver  # If no custom driver provided
 
         for attempt in range(self.DRIVER_RETRIES):
             try:
                 if not hard:  # if wanted to wait before getting an element
-                    element = WebDriverWait(driver, self.WAIT_TIMER).until(
+                    element = WebDriverWait(driver, wait_time).until(
                         ec.presence_of_element_located((how, name))
                     )
                     if clickable:
@@ -247,18 +268,18 @@ class KarriereAtScraper:
                 # Re-fetch the element right before getting its text
                 elem = self.__get_element(how, name, driver, hard)
                 if elem is None:
-                    #print("Element is None")
+                    # print("Element is None")
                     return default_value
                 else:
                     res = self.__driver.execute_script("return arguments[0].textContent;", elem).strip()
-                    #print("Found text", res)
+                    # print("Found text", res)
                     return res
             except StaleElementReferenceException:
                 if attempt < 1:
-                    #print(f"Element {name} disappeared from DOM while getting text. Retrying...")
+                    # print(f"Element {name} disappeared from DOM while getting text. Retrying...")
                     pass
                 else:
-                    #print(f"Element {name} disappeared from DOM after retry while getting text.")
+                    # print(f"Element {name} disappeared from DOM after retry while getting text.")
                     return "EXCEPTION"
             except Exception as e:
                 print(f"Exception encountered while getting text of {name}: {e}")
@@ -288,7 +309,7 @@ class KarriereAtScraper:
         :return: True if cookies were declined, False otherwise
         """
         try:
-            element = self.__get_element(By.ID, self.COOKIE_DENY_ID, clickable=True)
+            element = self.__get_element(By.ID, self.COOKIE_DENY_ID, clickable=True, wait_time=5)
             if element:
                 element.click()
             print("+ Cookies successfully denied")
@@ -297,14 +318,13 @@ class KarriereAtScraper:
             print("- Error with cookies.", e)
             return False
 
-    def __fetch_jobs_data(self, urls, limit=9999, use_proxy=True):
+    def __fetch_jobs_data(self, urls, limit=9999):
         """
         Fetches all the available jobs for all provided URLs, only unique entries are kept, data is stored in a current_df
         :param urls: a list of URLs
         :param limit: a hard limit on how many jobs to fetch
-        :param use_proxy: True if you want to connect with proxy
         """
-        self.__create_driver(use_proxy=use_proxy)
+        self.__create_driver()
 
         self.__driver.get(self.BASE_URL)
 
