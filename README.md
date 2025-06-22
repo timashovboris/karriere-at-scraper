@@ -4,7 +4,8 @@
 
 ### English
 
-This software is a web scraper for [karriere.at](https://www.karriere.at/), an Austrian job search platform. It automates the process of retrieving
+This software is a web scraper for [karriere.at](https://www.karriere.at/), an Austrian job search platform. It
+automates the process of retrieving
 job listings based on specified job titles and locations. The scraper extracts details such as job title, ID, URL,
 company,
 location, employment type, salary and job level.
@@ -14,7 +15,8 @@ provided with the package.
 
 ### Deutsch
 
-Diese Software ist ein Web Scraper für [karriere.at](https://www.karriere.at/), eine österreichische Jobsuchplattform. Es automatisiert den Prozess
+Diese Software ist ein Web Scraper für [karriere.at](https://www.karriere.at/), eine österreichische Jobsuchplattform.
+Es automatisiert den Prozess
 des Abrufs von
 Stellenangeboten auf der Grundlage von bestimmten Jobtiteln und Standorten. Der Scraper extrahiert Details wie Jobtitel,
 ID, URL, Unternehmen, Ort, Beschäftigungsart, Gehalt und Joblevel.
@@ -73,7 +75,7 @@ from karriere_at_scraper import KarriereAtScraper
 # Creates a parser object with a driver of your choice
 # Browser options are "firefox", "chrome" and "edge"
 # Don't forget to provide respective drivers, they are installed separately
-kp = KarriereAtScraper("firefox", "path/to/driver")
+kp = KarriereAtScraper("firefox", "path/to/driver.exe")
 
 jobs = ["Software Entwickler", "IT"]
 locations = ["Wien", "Salzburg", "Graz"]
@@ -89,6 +91,28 @@ results are automatically saved in csv to the runtime directory.
 
 ## Functions
 
+### Creating the scraper
+
+The scraper is an object of a ```KarriereAtScraper``` class.
+
+```python
+from karriere_at_scraper import KarriereAtScraper
+
+kp = KarriereAtScraper("firefox", "path/to/driver.exe", run_headless=True, use_proxy=True, google_proxy=False, custom_proxy="", wait_timer=1)
+```
+
+#### Paramers
+
+* ```driver_name``` (str): Name of your browser: firefox, edge, or chrome
+* ```driver_dir``` (str): Path to your webdriver executable
+* ```run_headless``` (bool, optional): True if the browser should run in headless mode (on background)
+* ```use_proxy``` (bool, optional): True if you want to connect with proxy
+* ```google_proxy``` (bool, optional): True if you want to connect with google proxy (availability depends on the third
+  party)
+* ```custom_proxy``` (str, optional): String with custom proxy url. It wil be used as a part of Selenium "--proxy-server=" parameter
+* ```wait_timer``` (int, optional): Time in seconds that selenium will wait when looking for elements. 1 second by
+  default.
+
 ### fetch_jobs
 
 A callable that initiates parsing.
@@ -96,7 +120,7 @@ A callable that initiates parsing.
 ```python
 from karriere_at_scraper import KarriereAtScraper
 
-kp = KarriereAtScraper("firefox", "path/to/driver")
+kp = KarriereAtScraper("firefox", "path/to/driver.exe")
 ...
 kp.fetch_jobs(jobs_list=[], locations=[], remove_duplicates=True, csv_name="", length_limit=9999, export=True)
 ```
@@ -109,7 +133,6 @@ with ```clear_df``` function.
 * ```jobs_list``` (list): A list of job titles or keywords to search for. This parameter is mandatory.
 * ```locations``` (list): A list of geographical locations where the jobs should be searched. This parameter is
   mandatory.
-* ```use_proxy``` (bool, optional): True if you want to connect with proxy. Defaults to True. Keep in mind that it may be unstable at times.
 * ```remove_duplicates``` (bool, optional): If set to True, duplicate job entries will be removed from the resulting
   DataFrame. Defaults to True.
 * ```csv_name``` (str, optional): The desired name for the output CSV file. If left as an empty string (default), a name
@@ -132,7 +155,7 @@ Exports the current dataframe to a csv file.
 ```python
 from karriere_at_scraper import KarriereAtScraper
 
-kp = KarriereAtScraper("firefox", "path/to/driver")
+kp = KarriereAtScraper("firefox", "path/to/driver.exe")
 ...
 kp.export_df_to_csv(csv_name="")
 ```
@@ -148,7 +171,7 @@ Returns current dataframe.
 ```python
 from karriere_at_scraper import KarriereAtScraper
 
-kp = KarriereAtScraper("firefox", "path/to/driver")
+kp = KarriereAtScraper("firefox", "path/to/driver.exe")
 ...
 df = kp.get_df()
 ```
@@ -160,7 +183,7 @@ Manually removes all the entries from the stored dataframe.
 ```python
 from karriere_at_scraper import KarriereAtScraper
 
-kp = KarriereAtScraper("firefox", "path/to/driver")
+kp = KarriereAtScraper("firefox", "path/to/driver.exe")
 ...
 kp.clear_df()
 ```
@@ -201,19 +224,10 @@ draw_salaries_chart(df, locale="de")
 
 ### draw_employment_types_chart
 
-This function draws a distribution chart of available employment types among job offers.
-
-```python
-from karriere
-```
-
----
-
-### draw_employment_types_chart
-
 This function allows you to draw a distribution chart of available employment types.
 
-You can choose two locales for labels - English ("en", default) and German ("de"). Keep in mind that employmen types' labels are not translated and are displayed as on the website (in german).
+You can choose two locales for labels - English ("en", default) and German ("de"). Keep in mind that employmen types'
+labels are not translated and are displayed as on the website (in german).
 
 ```python
 from karriere_at_scraper import draw_employment_types_chart
