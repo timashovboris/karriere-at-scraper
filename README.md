@@ -45,7 +45,17 @@ Analyseinstrumente sind mit dem Paket mitgeliefert.
 - Matplotlib,
 - Seaborn
 
-### Webdriver note
+## Installation
+
+This software is intended to be installed as package. For now, you can do this with the foloowing command.
+```
+pip install git+https://github.com/timashovboris/karriere-at-scraper
+```
+To get a dev branch version, add ```@dev``` to the end of the URL. 
+
+---
+
+## Webdriver note
 
 Selenium requires a web driver to work, it depends on your browser. This software supports firefox, chrome, and
 Microsoft Edge. Firefox was the target browser during development.
@@ -57,7 +67,7 @@ You can find webdrivers in the official sources:
 - Microsoft
   Edge - [Microsoft Edge WebDriver](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver?form=MA13LH)
 
-### Data integrity note
+## Data integrity note
 
 The website underwent a design change in 2025. Currently, similar elements on two different pages may have two different
 classes. For example, the labels 'salary' and 'location' may have a similar class without any IDs or unique styles.
